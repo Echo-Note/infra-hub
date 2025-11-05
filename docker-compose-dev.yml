@@ -100,9 +100,9 @@ services:
       PYTHONUNBUFFERED: "1"
     volumes:
       - ./:/opt/infra-hub
-      - ${VOLUME_DIR:-../}/xadmin-app/data:/opt/infra-hub/data
-      - ${VOLUME_DIR:-../}/xadmin-app/static:/opt/infra-hub/static
-      - ${VOLUME_DIR:-../}/xadmin-app/media:/opt/infra-hub/media
+      - ${VOLUME_DIR:-./}/data:/opt/infra-hub/data
+      - ${VOLUME_DIR:-./}/static:/opt/infra-hub/static
+      - ${VOLUME_DIR:-./}/media:/opt/infra-hub/media
     ports:
       - "${HTTP_PORT:-8896}:${HTTP_PORT:-8896}"
       - "${FLOWER_PORT:-5555}:${FLOWER_PORT:-5555}"
@@ -128,7 +128,7 @@ services:
       CELERY_WORKER_COUNT: ${CELERY_WORKER_COUNT:-4}
     volumes:
       - ./:/opt/infra-hub
-      - ${VOLUME_DIR:-../}/xadmin-app/data:/opt/infra-hub/data
+      - ${VOLUME_DIR:-./}/data:/opt/infra-hub/data
     healthcheck:
       test: "celery -A server inspect ping -d celery@xadmin-celery || exit 1"
       interval: 30s
