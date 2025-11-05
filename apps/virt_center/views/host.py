@@ -27,7 +27,7 @@ class HostViewSet(BaseModelSet):
     """宿主机管理视图集"""
 
     queryset = Host.objects.select_related("platform").all()
-    serializer_class = HostSerializer
+    serializer_class = HostListSerializer
     list_serializer_class = HostListSerializer
     ordering_fields = ["created_time", "updated_time", "name", "cpu_usage", "memory_usage"]
     filterset_class = HostFilter
@@ -38,7 +38,9 @@ class HostViewSet(BaseModelSet):
             return HostListSerializer
         elif self.action == "retrieve":
             return HostDetailSerializer
-        return HostSerializer
+        elif self.action in ["create", "update", "partial_update"]:
+            return HostSerializer
+        return HostListSerializer
 
     @extend_schema(responses=get_default_response_schema())
     def retrieve(self, request, *args, **kwargs):
