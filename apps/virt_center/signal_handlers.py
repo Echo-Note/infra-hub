@@ -76,7 +76,7 @@ def on_platform_sync_completed(sender, platform_id, platform_name, sync_result, 
     - 记录审计日志
     - 更新统计信息
     """
-    logger.info(f"平台 {platform_name} 同步完成: {sync_result.get('sync_time')}")
+    logger.info(f"平台 {platform_name} 同步完成: {sync_result.get('syc_time')}")
 
     # 发送同步成功通知
     try:

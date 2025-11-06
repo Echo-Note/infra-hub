@@ -48,7 +48,7 @@ class ServerPerformanceCheckUtil(object):
     items_mapper = {
         "disk_used": {
             "default": 0,
-            "max_threshold": 80,
+            "max_threshold": 90,
             "alarm_msg_format": _("Disk used more than {max_threshold}%: => {value}"),
         },
         "memory_used": {

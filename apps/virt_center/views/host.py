@@ -56,7 +56,7 @@ class HostViewSet(BaseModelSet):
     @action(methods=["POST"], detail=True, url_path="operate")
     @record_operation("operate", "host")
     def operate_host(self, request, *args, **kwargs):
-        """执行主机操作（维护模式、重启等）"""
+        """执行主机操作（维护模式、重启等）- 异步执行"""
         host = self.get_object()
         serializer = HostOperationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -65,47 +65,27 @@ class HostViewSet(BaseModelSet):
         force = serializer.validated_data.get("force", False)
 
         try:
-            from apps.virt_center.services.vsphere_client import get_vsphere_client
+            from apps.virt_center.tasks import operate_host_task
 
-            client = get_vsphere_client(host.platform)
+            # 异步执行主机操作任务，传递操作人员ID
+            operator_id = str(request.user.id) if request.user.is_authenticated else None
+            result = operate_host_task.delay(str(host.id), operation, force, operator_id)
 
-            with client:
-                # 根据操作类型执行相应操作
-                if operation == "enter_maintenance":
-                    result = client.enter_maintenance_mode(host.mo_ref)
-                    message = "主机已进入维护模式"
-                    # 更新本地状态
-                    host.in_maintenance = True
-                    host.save(update_fields=["in_maintenance", "updated_time"])
-                elif operation == "exit_maintenance":
-                    result = client.exit_maintenance_mode(host.mo_ref)
-                    message = "主机已退出维护模式"
-                    # 更新本地状态
-                    host.in_maintenance = False
-                    host.save(update_fields=["in_maintenance", "updated_time"])
-                elif operation == "reboot":
-                    result = client.reboot_host(host.mo_ref, force=force)
-                    message = "主机重启命令已发送"
-                elif operation == "shutdown":
-                    result = client.shutdown_host(host.mo_ref, force=force)
-                    message = "主机关闭命令已发送"
-                else:
-                    return ApiResponse(code=1001, msg=_("Invalid operation type"))
-
-                return ApiResponse(
-                    data={
-                        "operation": operation,
-                        "host_name": host.name,
-                        "result": result,
-                        "message": message,
-                    },
-                    msg=_("Operation successful"),
-                )
+            return ApiResponse(
+                data={
+                    "task_id": result.id,
+                    "host_id": str(host.id),
+                    "host_name": host.name,
+                    "operation": operation,
+                    "message": f"主机操作任务已启动 ({operation})",
+                },
+                msg=_("Operation task started"),
+            )
 
         except Exception as e:
             return ApiResponse(
                 code=1001,
-                msg=_("Operation failed"),
+                msg=_("Failed to start operation task"),
                 data={"error": str(e), "operation": operation},
             )
 
@@ -198,3 +178,34 @@ class HostViewSet(BaseModelSet):
         vms = VirtualMachine.objects.filter(host=host, is_active=True)
         serializer = VirtualMachineListSerializer(vms, many=True)
         return ApiResponse(data=serializer.data, total=vms.count())
+
+    @extend_schema(responses=get_default_response_schema())
+    @action(methods=["GET"], detail=False, url_path="task-status/(?P<task_id>[^/.]+)")
+    def task_status(self, request, task_id=None):
+        """查询主机操作任务状态"""
+        from celery.result import AsyncResult
+
+        try:
+            result = AsyncResult(task_id)
+
+            response_data = {
+                "task_id": task_id,
+                "status": result.state,
+                "ready": result.ready(),
+                "successful": result.successful() if result.ready() else None,
+            }
+
+            if result.ready():
+                if result.successful():
+                    response_data["result"] = result.result
+                else:
+                    response_data["error"] = str(result.info)
+
+            return ApiResponse(data=response_data, msg=_("Task status retrieved"))
+
+        except Exception as e:
+            return ApiResponse(
+                code=1001,
+                msg=_("Failed to get task status"),
+                data={"error": str(e)},
+            )

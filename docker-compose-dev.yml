@@ -81,57 +81,57 @@ services:
       start_period: 10s
     networks:
       - net
-
-  web:
-    <<: *app-common
-    container_name: xadmin-web
-    hostname: xadmin-web
-    command:
-      - bash
-      - -c
-      - |
-        python manage.py start web
-    environment:
-      <<: *app-environment
-      HTTP_BIND_HOST: 0.0.0.0
-      HTTP_LISTEN_PORT: ${HTTP_PORT:-8896}
-      CELERY_FLOWER_HOST: 0.0.0.0
-      CELERY_FLOWER_PORT: ${FLOWER_PORT:-5555}
-      PYTHONUNBUFFERED: "1"
-    volumes:
-      - ./:/opt/infra-hub
-      - ${VOLUME_DIR:-./}/data:/opt/infra-hub/data
-      - ${VOLUME_DIR:-./}/static:/opt/infra-hub/static
-      - ${VOLUME_DIR:-./}/media:/opt/infra-hub/media
-    ports:
-      - "${HTTP_PORT:-8896}:${HTTP_PORT:-8896}"
-      - "${FLOWER_PORT:-5555}:${FLOWER_PORT:-5555}"
-    healthcheck:
-      test: "curl -f http://localhost:${HTTP_PORT:-8896}/api/common/api/health || exit 1"
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  celery:
-    <<: *app-common
-    container_name: xadmin-celery
-    hostname: xadmin-celery
-    command:
-      - bash
-      - -c
-      - |
-        python manage.py start task
-    environment:
-      <<: *app-environment
-      SERVER_HOSTNAME: xadmin-celery
-      CELERY_WORKER_COUNT: ${CELERY_WORKER_COUNT:-4}
-    volumes:
-      - ./:/opt/infra-hub
-      - ${VOLUME_DIR:-./}/data:/opt/infra-hub/data
-    healthcheck:
-      test: "celery -A server inspect ping -d celery@xadmin-celery || exit 1"
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+#
+#  web:
+#    <<: *app-common
+#    container_name: xadmin-web
+#    hostname: xadmin-web
+#    command:
+#      - bash
+#      - -c
+#      - |
+#        python manage.py start web
+#    environment:
+#      <<: *app-environment
+#      HTTP_BIND_HOST: 0.0.0.0
+#      HTTP_LISTEN_PORT: ${HTTP_PORT:-8896}
+#      CELERY_FLOWER_HOST: 0.0.0.0
+#      CELERY_FLOWER_PORT: ${FLOWER_PORT:-5555}
+#      PYTHONUNBUFFERED: "1"
+#    volumes:
+#      - ./:/opt/infra-hub
+#      - ${VOLUME_DIR:-./}/data:/opt/infra-hub/data
+#      - ${VOLUME_DIR:-./}/static:/opt/infra-hub/static
+#      - ${VOLUME_DIR:-./}/media:/opt/infra-hub/media
+#    ports:
+#      - "${HTTP_PORT:-8896}:${HTTP_PORT:-8896}"
+#      - "${FLOWER_PORT:-5555}:${FLOWER_PORT:-5555}"
+#    healthcheck:
+#      test: "curl -f http://localhost:${HTTP_PORT:-8896}/api/common/api/health || exit 1"
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 60s
+#
+#  celery:
+#    <<: *app-common
+#    container_name: xadmin-celery
+#    hostname: xadmin-celery
+#    command:
+#      - bash
+#      - -c
+#      - |
+#        python manage.py start task
+#    environment:
+#      <<: *app-environment
+#      SERVER_HOSTNAME: xadmin-celery
+#      CELERY_WORKER_COUNT: ${CELERY_WORKER_COUNT:-4}
+#    volumes:
+#      - ./:/opt/infra-hub
+#      - ${VOLUME_DIR:-./}/data:/opt/infra-hub/data
+#    healthcheck:
+#      test: "celery -A server inspect ping -d celery@xadmin-celery || exit 1"
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 60s

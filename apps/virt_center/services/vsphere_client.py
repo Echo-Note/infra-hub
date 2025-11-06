@@ -259,6 +259,161 @@ class VSphereClient:
         containerView.Destroy()
         return networks
 
+    def get_host_by_mo_ref(self, mo_ref: str) -> Optional[vim.HostSystem]:
+        """
+        根据 ManagedObject Reference 获取主机对象
+
+        Args:
+            mo_ref: 主机的 ManagedObject Reference ID
+
+        Returns:
+            vim.HostSystem: 主机对象，未找到返回 None
+        """
+        hosts = self.get_hosts()
+        for host in hosts:
+            if str(host._moId) == mo_ref:
+                return host
+        return None
+
+    def enter_maintenance_mode(
+        self, host_mo_ref: str, timeout: int = 0, evacuate_powered_off_vms: bool = False
+    ) -> dict:
+        """
+        使主机进入维护模式
+
+        Args:
+            host_mo_ref: 主机的 MO Reference ID
+            timeout: 超时时间（秒），0 表示无限等待
+            evacuate_powered_off_vms: 是否迁移已关闭的虚拟机
+
+        Returns:
+            dict: 操作结果
+
+        Raises:
+            Exception: 主机不存在或操作失败
+        """
+        host = self.get_host_by_mo_ref(host_mo_ref)
+        if not host:
+            raise Exception(f"未找到主机: {host_mo_ref}")
+
+        logger.info(f"正在使主机 {host.name} 进入维护模式")
+
+        try:
+            task = host.EnterMaintenanceMode_Task(timeout=timeout, evacuatePoweredOffVms=evacuate_powered_off_vms)
+            # 等待任务完成（维护模式操作可能较慢）
+            import time
+
+            while task.info.state in [vim.TaskInfo.State.running, vim.TaskInfo.State.queued]:
+                time.sleep(2)
+
+            if task.info.state == vim.TaskInfo.State.success:
+                logger.info(f"主机 {host.name} 已进入维护模式")
+                return {"success": True, "message": "主机已进入维护模式"}
+            else:
+                error_msg = task.info.error.msg if task.info.error else "未知错误"
+                raise Exception(f"进入维护模式失败: {error_msg}")
+
+        except Exception as e:
+            logger.error(f"主机 {host.name} 进入维护模式失败: {str(e)}")
+            raise
+
+    def exit_maintenance_mode(self, host_mo_ref: str, timeout: int = 0) -> dict:
+        """
+        使主机退出维护模式
+
+        Args:
+            host_mo_ref: 主机的 MO Reference ID
+            timeout: 超时时间（秒），0 表示无限等待
+
+        Returns:
+            dict: 操作结果
+
+        Raises:
+            Exception: 主机不存在或操作失败
+        """
+        host = self.get_host_by_mo_ref(host_mo_ref)
+        if not host:
+            raise Exception(f"未找到主机: {host_mo_ref}")
+
+        logger.info(f"正在使主机 {host.name} 退出维护模式")
+
+        try:
+            task = host.ExitMaintenanceMode_Task(timeout=timeout)
+            # 等待任务完成
+            import time
+
+            while task.info.state in [vim.TaskInfo.State.running, vim.TaskInfo.State.queued]:
+                time.sleep(2)
+
+            if task.info.state == vim.TaskInfo.State.success:
+                logger.info(f"主机 {host.name} 已退出维护模式")
+                return {"success": True, "message": "主机已退出维护模式"}
+            else:
+                error_msg = task.info.error.msg if task.info.error else "未知错误"
+                raise Exception(f"退出维护模式失败: {error_msg}")
+
+        except Exception as e:
+            logger.error(f"主机 {host.name} 退出维护模式失败: {str(e)}")
+            raise
+
+    def reboot_host(self, host_mo_ref: str, force: bool = False) -> dict:
+        """
+        重启主机
+
+        Args:
+            host_mo_ref: 主机的 MO Reference ID
+            force: 是否强制重启
+
+        Returns:
+            dict: 操作结果
+
+        Raises:
+            Exception: 主机不存在或操作失败
+        """
+        host = self.get_host_by_mo_ref(host_mo_ref)
+        if not host:
+            raise Exception(f"未找到主机: {host_mo_ref}")
+
+        logger.info(f"正在重启主机 {host.name}，force={force}")
+
+        try:
+            task = host.RebootHost_Task(force=force)
+            logger.info(f"主机 {host.name} 重启命令已发送")
+            return {"success": True, "message": "主机重启命令已发送", "task_id": str(task)}
+
+        except Exception as e:
+            logger.error(f"主机 {host.name} 重启失败: {str(e)}")
+            raise
+
+    def shutdown_host(self, host_mo_ref: str, force: bool = False) -> dict:
+        """
+        关闭主机
+
+        Args:
+            host_mo_ref: 主机的 MO Reference ID
+            force: 是否强制关闭
+
+        Returns:
+            dict: 操作结果
+
+        Raises:
+            Exception: 主机不存在或操作失败
+        """
+        host = self.get_host_by_mo_ref(host_mo_ref)
+        if not host:
+            raise Exception(f"未找到主机: {host_mo_ref}")
+
+        logger.info(f"正在关闭主机 {host.name}，force={force}")
+
+        try:
+            task = host.ShutdownHost_Task(force=force)
+            logger.info(f"主机 {host.name} 关闭命令已发送")
+            return {"success": True, "message": "主机关闭命令已发送", "task_id": str(task)}
+
+        except Exception as e:
+            logger.error(f"主机 {host.name} 关闭失败: {str(e)}")
+            raise
+
     '''
     def wait_for_task(self, task: vim.Task, timeout: int = 300) -> bool:
         """

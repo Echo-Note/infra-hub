@@ -63,6 +63,7 @@ dependencies = [
     "uvicorn==0.38.0",
     "websockets==15.0.1",
     "pyvmomi>=8.0.0",
+    "celery-types==0.23.0",
 ]
 
 [project.optional-dependencies]

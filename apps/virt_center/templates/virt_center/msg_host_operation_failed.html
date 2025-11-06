@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>主机操作失败</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .header { background-color: #dc3545; color: white; padding: 15px; border-radius: 5px 5px 0 0; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .info-row { margin: 10px 0; padding: 10px; background-color: white; border-left: 4px solid #dc3545; }
+        .label { font-weight: bold; color: #555; display: inline-block; width: 100px; }
+        .value { color: #333; }
+        .error-box { margin-top: 20px; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; color: #721c24; }
+        .error-title { font-weight: bold; margin-bottom: 10px; }
+        .error-message { font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
+        .footer { text-align: center; padding: 15px; color: #666; font-size: 12px; }
+        .icon { font-size: 48px; text-align: center; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✗ 主机操作失败</h2>
+        </div>
+        <div class="content">
+            <div class="icon">❌</div>
+
+            <div class="info-row">
+                <span class="label">主机名称：</span>
+                <span class="value">{{ host_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">操作类型：</span>
+                <span class="value">{{ operation }}</span>
+            </div>
+            {% if operator_name %}
+            <div class="info-row">
+                <span class="label">操作人员：</span>
+                <span class="value">{{ operator_name }}</span>
+            </div>
+            {% endif %}
+
+            <div class="error-box">
+                <div class="error-title">错误信息：</div>
+                <div class="error-message">{{ error }}</div>
+            </div>
+
+            <p style="margin-top: 20px; padding: 10px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 5px; color: #856404;">
+                <strong>建议：</strong>请检查主机状态和错误信息，必要时联系系统管理员。
+            </p>
+        </div>
+        <div class="footer">
+            此消息由虚拟化中心自动发送
+        </div>
+    </div>
+</body>
+</html>
