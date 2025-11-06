@@ -36,7 +36,8 @@ def create_system_messages(app_config: AppConfig, **kwargs):
             if not inspect.isclass(obj):
                 continue
 
-            if not issubclass(obj, SystemMessage):
+            # 必须是 SystemMessage 的子类，但不是 SystemMessage 本身
+            if not issubclass(obj, SystemMessage) or obj is SystemMessage:
                 continue
 
             attrs = obj.__dict__
@@ -50,15 +51,22 @@ def create_system_messages(app_config: AppConfig, **kwargs):
                 continue
 
             message_type = obj.get_message_type()
-            sub, created = SystemMsgSubscription.objects.get_or_create(message_type=message_type)
-            if not created:
-                return
 
-            try:
-                obj.post_insert_to_db(sub)
-                logger.info(f"Create MsgSubscription: package={app_config.module.__package__} type={message_type}")
-            except:
-                pass
+            # 获取或创建订阅
+            sub, created = SystemMsgSubscription.objects.get_or_create(message_type=message_type)
+
+            # 检查是否需要配置（新创建或没有用户）
+            needs_config = created or sub.users.count() == 0
+
+            if needs_config:
+                try:
+                    obj.post_insert_to_db(sub)
+                    action = "Create" if created else "Update"
+                    logger.info(
+                        f"{action} MsgSubscription: package={app_config.module.__package__} type={message_type}"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to configure subscription {message_type}: {str(e)}")
     except ModuleNotFoundError:
         pass
 
