@@ -6,8 +6,9 @@
 # date : 12/15/2023
 import itertools
 
+from django.conf import settings
 from django.contrib.auth import user_logged_out
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_migrate, post_save, pre_delete
 from django.dispatch import receiver
 
 from apps.common.base.magic import MagicCacheData, cache_response
@@ -86,3 +87,35 @@ def invalid_user_cache(sender, **kwargs):
         return
 
     batch_invalid_cache([user_pk])
+
+
+# 在debug模式下migrate后自动创建超级管理员
+@receiver(post_migrate)
+def create_superuser_in_debug(sender, **kwargs):
+    """
+    在 DEBUG 模式下，migrate 后自动创建超级管理员账号 admin
+    用户名: admin
+    密码: admin
+    """
+    if not settings.DEBUG:
+        return
+
+    # 只在 system app migrate 时执行，避免重复执行
+    if sender.name != "apps.system":
+        return
+
+    username = "admin"
+    password = "admin"
+    email = "admin@admin.com"
+
+    try:
+        # 检查用户是否已存在
+        if UserInfo.objects.filter(username=username).exists():
+            logger.info(f"超级管理员用户 {username} 已存在，跳过创建")
+            return
+
+        # 创建超级管理员
+        UserInfo.objects.create_superuser(username=username, password=password, email=email)
+        logger.info(f"成功创建超级管理员用户: {username}, 密码: {password}")
+    except Exception as e:
+        logger.error(f"创建超级管理员用户失败: {e}")
